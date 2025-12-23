@@ -1,19 +1,23 @@
 package com.kashif.pdfreader
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Bitmap.createBitmap
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -26,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,7 +56,7 @@ class PdfViewerActivity : ComponentActivity() {
 @Composable
 fun PdfViewerApp() {
 
-
+    var pageBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -75,8 +80,27 @@ fun PdfViewerApp() {
         selectedUri?.let { uri ->
             withContext(Dispatchers.IO) {
                 val renderer = repository.openRenderer(uri)
-                Log.d("PDF", "Page count = ${renderer.pageCount}")
+                val page = renderer.openPage(0)
+
+                val bitmap = createBitmap(
+                    page.width,
+                    page.height,
+                    Bitmap.Config.ARGB_8888
+                )
+
+                page.render(
+                    bitmap,
+                    null,
+                    null,
+                    PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                )
+
+                page.close()
                 renderer.close()
+
+                withContext(Dispatchers.Main) {
+                    pageBitmap = bitmap
+                }
             }
         }
     }
@@ -92,6 +116,14 @@ fun PdfViewerApp() {
             openPdfLauncher.launch(arrayOf("application/pdf"))
         }) {
             Text("Open PDF")
+        }
+        pageBitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
