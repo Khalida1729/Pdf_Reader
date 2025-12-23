@@ -3,7 +3,6 @@ package com.kashif.pdfreader.data
 import android.content.Context
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
-
 class PdfRepository(
     private val context: Context
 ) {
